@@ -1,0 +1,42 @@
+.logoText {
+  background: linear-gradient(90deg, #00ff41, #ffffff, #ff2d2d);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.navLink {
+  position: relative;
+  overflow: hidden;
+}
+
+.navLink::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #00ff41, #ff2d2d);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.navLink:hover::before {
+  transform: translateX(0);
+}
+
+.activeLink::before {
+  transform: translateX(0);
+}
