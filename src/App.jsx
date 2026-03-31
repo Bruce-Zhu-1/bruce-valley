@@ -8,6 +8,10 @@ import Works from './pages/Works'
 import Guest from './pages/Guest'
 import Agent from './pages/Agent'
 import Games from './pages/Games'
+import Team from './pages/Team'
+import Notes from './pages/Notes'
+import NotesAuthor from './pages/NotesAuthor'
+import NotesArticle from './pages/NotesArticle'
 import GlobalBackground from './components/GlobalBackground'
 import GlobalAudioPlayer from './components/GlobalAudioPlayer'
 import Preloader from './components/Preloader'
@@ -27,6 +31,10 @@ function App() {
         <Route path="/guest" element={<Guest />} />
         <Route path="/agent" element={<Agent />} />
         <Route path="/games" element={<Games />} />
+        <Route path="/team" element={<Team />} />
+        <Route path="/notes" element={<Notes />} />
+        <Route path="/notes/:author" element={<NotesAuthor />} />
+        <Route path="/notes/:author/:articleId" element={<NotesArticle />} />
       </Routes>
     </AnimatePresence>
   )

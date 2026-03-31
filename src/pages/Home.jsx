@@ -5,10 +5,14 @@ import HomeCanvas from '../components/HomeCanvas'
 import '../index.css'
 
 const menuItems = [
-  { id: 'diaries', src: '/UI/notes_btn.png', path: '/diaries', alt: 'Diaries' },
+  { id: 'notes', src: '/UI/notes_btn.png', path: '/notes', alt: 'Notes' },
   { id: 'works', src: '/UI/works_btn.png', path: '/works', alt: 'Works' },
   { id: 'guest', src: '/UI/guest_btn.png', path: '/guest', alt: 'Guest' },
   { id: 'agent', src: '/UI/bot_btn.png', path: '/agent', alt: 'Agent' },
+]
+
+const extraItems = [
+  { id: 'team', label: 'THE CREW', path: '/team' },
 ]
 
 function MenuButton({ item, playSelect }) {
@@ -135,6 +139,46 @@ function Home() {
         >
           {menuItems.map((item) => (
             <MenuButton key={item.id} item={item} playSelect={playSelect} />
+          ))}
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.8, duration: 0.5 }}
+          style={{
+            marginTop: 'clamp(30px, 5vh, 60px)',
+          }}
+        >
+          {extraItems.map((item) => (
+            <Link 
+              key={item.id} 
+              to={item.path} 
+              style={{ textDecoration: 'none' }}
+            >
+              <motion.div
+                whileHover={{ scale: 1.05, y: -3 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={playSelect}
+                style={{
+                  padding: '12px 32px',
+                  background: 'linear-gradient(135deg, #8b0000 0%, #5c0000 100%)',
+                  border: '3px solid #f4e4bc',
+                  boxShadow: '4px 4px 0 rgba(0, 0, 0, 0.8), 0 0 20px rgba(139, 0, 0, 0.5)',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{
+                  fontFamily: '"Rye", serif',
+                  fontSize: 'clamp(0.9rem, 2vw, 1.2rem)',
+                  color: '#f4e4bc',
+                  letterSpacing: '0.2em',
+                  textShadow: '2px 2px 0 rgba(0, 0, 0, 0.8)',
+                }}>
+                  {item.label}
+                </span>
+              </motion.div>
+            </Link>
           ))}
         </motion.div>
         

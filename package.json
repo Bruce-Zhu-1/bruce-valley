@@ -25,6 +25,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "react-router-dom": "^6.21.1",
+    "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
     "three": "^0.170.0",
     "use-sound": "^5.0.0",
