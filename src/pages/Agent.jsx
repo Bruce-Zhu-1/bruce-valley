@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas } from '@react-three/fiber'
 import { useGLTF, useAnimations, Bounds, OrbitControls } from '@react-three/drei'
-import { Send, Loader2, AlertCircle } from 'lucide-react'
-import { generateAIResponseStream, isAIConfigured } from '../services/ai'
+import { Send, Loader2, AlertCircle, Zap } from 'lucide-react'
+import { generateAIResponseStream, isAIConfigured, getAvailableEngines } from '../services/ai'
 import useSound from 'use-sound'
 
 function RobotModel() {
@@ -70,6 +70,8 @@ function Agent() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isConfigured, setIsConfigured] = useState(false)
+  const [activeEngine, setActiveEngine] = useState('gemini')
+  const [availableEngines, setAvailableEngines] = useState([])
   const messagesEndRef = useRef(null)
   const [playClick] = useSound('/music/sfx/click.mp3', { volume: 0.5 })
   
@@ -78,7 +80,13 @@ function Agent() {
   }
   
   useEffect(() => {
+    const engines = getAvailableEngines()
+    setAvailableEngines(engines)
     setIsConfigured(isAIConfigured())
+    
+    if (engines.length > 0) {
+      setActiveEngine(engines[0].id)
+    }
     
     if (isAIConfigured()) {
       setMessages([
@@ -92,7 +100,7 @@ function Agent() {
       setMessages([
         {
           role: 'system',
-          content: '⚠️ API Key 未配置。请在项目根目录的 .env 文件中设置 VITE_GEMINI_API_KEY。',
+          content: '⚠️ API Key 未配置。请在项目根目录的 .env 文件中设置 VITE_GEMINI_API_KEY 或 VITE_SILICON_FLOW_API_KEY。',
           timestamp: new Date().toISOString()
         }
       ])
@@ -102,6 +110,11 @@ function Agent() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+  
+  const handleEngineSwitch = (engineId) => {
+    playClick()
+    setActiveEngine(engineId)
+  }
   
   const handleSendMessage = async (e) => {
     e.preventDefault()
@@ -130,11 +143,11 @@ function Agent() {
       const conversationHistory = messages
         .filter(m => m.role !== 'system')
         .map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
+          role: m.role === 'assistant' ? (activeEngine === 'gemini' ? 'model' : 'assistant') : 'user',
           content: m.content
         }))
       
-      const stream = generateAIResponseStream(userMessage, conversationHistory)
+      const stream = generateAIResponseStream(userMessage, conversationHistory, activeEngine)
       let fullResponse = ''
       
       for await (const chunk of stream) {
@@ -240,7 +253,7 @@ function Agent() {
                   letterSpacing: '0.2em',
                 }}
               >
-                POWERED BY GEMINI
+                DUAL ENGINE POWERED
               </p>
             </div>
           </div>
@@ -248,17 +261,54 @@ function Agent() {
           <div className="w-3/5 flex flex-col bg-[#fcf3d9]/90">
             
             <div className="p-5 border-b-4 border-[#8b5a2b]/30 bg-[#f4e4bc]/60">
-              <h3 
-                className="text-amber-950 flex items-center gap-3"
-                style={{
-                  fontSize: '0.75rem',
-                  fontFamily: '"Press Start 2P", Courier New, monospace',
-                  letterSpacing: '0.12em',
-                }}
-              >
-                <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                Q&A TERMINAL
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 
+                  className="text-amber-950 flex items-center gap-3"
+                  style={{
+                    fontSize: '0.75rem',
+                    fontFamily: '"Press Start 2P", Courier New, monospace',
+                    letterSpacing: '0.12em',
+                  }}
+                >
+                  <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                  Q&A TERMINAL
+                </h3>
+              </div>
+              
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => handleEngineSwitch('gemini')}
+                  disabled={isLoading}
+                  className={`px-4 py-1.5 border-2 transition-all duration-200 ${
+                    activeEngine === 'gemini'
+                      ? 'bg-amber-700 text-amber-100 border-amber-950 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)]'
+                      : 'bg-amber-100 text-amber-800 border-amber-700 hover:bg-amber-200'
+                  }`}
+                  style={{
+                    fontFamily: '"Press Start 2P", Courier New, monospace',
+                    fontSize: '0.55rem',
+                  }}
+                >
+                  <Zap className={`w-3 h-3 inline mr-1 ${activeEngine === 'gemini' ? 'text-amber-300' : 'text-amber-600'}`} />
+                  Gemini Core
+                </button>
+                <button
+                  onClick={() => handleEngineSwitch('siliconflow')}
+                  disabled={isLoading}
+                  className={`px-4 py-1.5 border-2 transition-all duration-200 ${
+                    activeEngine === 'siliconflow'
+                      ? 'bg-amber-700 text-amber-100 border-amber-950 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)]'
+                      : 'bg-amber-100 text-amber-800 border-amber-700 hover:bg-amber-200'
+                  }`}
+                  style={{
+                    fontFamily: '"Press Start 2P", Courier New, monospace',
+                    fontSize: '0.55rem',
+                  }}
+                >
+                  <Zap className={`w-3 h-3 inline mr-1 ${activeEngine === 'siliconflow' ? 'text-amber-300' : 'text-amber-600'}`} />
+                  Silicon Flow
+                </button>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-[300px]">
@@ -272,7 +322,7 @@ function Agent() {
                       message.role === 'user'
                         ? 'bg-amber-800 text-amber-100 border-2 border-amber-950 rounded-sm'
                         : message.role === 'error'
-                        ? 'bg-red-100 text-red-700 border-2 border-red-400 rounded-sm'
+                        ? 'bg-amber-50 text-amber-900 border-2 border-amber-400 rounded-sm'
                         : message.role === 'system'
                         ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-500 rounded-sm'
                         : 'bg-amber-100/60 border-2 border-amber-900 rounded-sm'
@@ -287,7 +337,7 @@ function Agent() {
                         color: message.role === 'user' 
                           ? '#fef3c7' 
                           : message.role === 'error' 
-                          ? '#b91c1c' 
+                          ? '#92400e' 
                           : message.role === 'system' 
                           ? '#92400e' 
                           : '#4a3018'
@@ -295,6 +345,9 @@ function Agent() {
                     >
                       {message.role === 'system' && (
                         <AlertCircle className="inline w-4 h-4 mr-2" />
+                      )}
+                      {message.role === 'error' && (
+                        <span className="mr-2">⚠️</span>
                       )}
                       {message.content}
                       {message.role === 'assistant' && isLoading && index === messages.length - 1 && (
