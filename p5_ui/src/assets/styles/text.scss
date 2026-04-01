@@ -1,0 +1,7 @@
+.p5-text{
+    @include p5-font;
+
+    padding: 0;
+    margin: 0;
+    text-shadow: 0 1px $color-white, 1px 0 $color-white, -1px 0 $color-white, 0 -1px $color-white;
+}

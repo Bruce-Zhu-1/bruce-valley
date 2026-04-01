@@ -1,0 +1,17 @@
+.p5-btn-ctn {
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: $color-white;
+
+    @include p5-font;
+
+    padding: 10px 20px;
+    z-index: 1;
+
+    background-color: $color-black;
+
+    
+}
