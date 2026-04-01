@@ -9,6 +9,7 @@ const Galleries = lazy(() => import('../pages/Galleries'))
 const Works = lazy(() => import('../pages/Works'))
 const Agent = lazy(() => import('../pages/Agent'))
 const Guest = lazy(() => import('../pages/Guest'))
+const Hide2 = lazy(() => import('../pages/Hide2'))
 
 const pageVariants = {
   initial: {
@@ -107,6 +108,14 @@ function AppRoutes() {
         element={
           <SuspenseWrapper>
             <Guest />
+          </SuspenseWrapper>
+        }
+      />
+      <Route
+        path="/hide2"
+        element={
+          <SuspenseWrapper>
+            <Hide2 />
           </SuspenseWrapper>
         }
       />

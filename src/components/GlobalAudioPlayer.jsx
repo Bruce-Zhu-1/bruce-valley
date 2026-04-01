@@ -3,8 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { Volume2, VolumeX } from 'lucide-react'
 
 const tracks = [
-  '/music/overture.mp3',
-  '/music/summer.mp3'
+  '/music/overture.mp3'
 ]
 
 function GlobalAudioPlayer() {
@@ -56,7 +55,7 @@ function GlobalAudioPlayer() {
   
   return (
     <>
-      <audio ref={audioRef} src={tracks[currentTrackIndex]} loop={false} />
+      <audio ref={audioRef} src={tracks[currentTrackIndex]} loop={true} />
       
       <button
         onClick={togglePlay}

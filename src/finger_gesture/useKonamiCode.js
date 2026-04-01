@@ -6,23 +6,20 @@ export function useEasterEggTrigger() {
 
   useEffect(() => {
     let inputSequence = '';
-    const targetSequence = 'yknEnter'; // 目标序列：y, k, n, 然后回车
+    const targetSequence = 'yknEnter';
 
     const handleKeyDown = (e) => {
-      // 获取按键，如果是字母转小写，如果是 Enter 首字母大写
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key; 
       
       inputSequence += key;
 
-      // 保持序列长度不要太长，防止内存堆积
       if (inputSequence.length > 20) {
         inputSequence = inputSequence.slice(-20);
       }
 
-      // 检查是否匹配
       if (inputSequence.endsWith(targetSequence)) {
         setIsActive(true);
-        inputSequence = ''; // 清空序列
+        inputSequence = '';
       }
     };
 
@@ -31,4 +28,35 @@ export function useEasterEggTrigger() {
   }, []);
 
   return { isActive, setIsActive };
+}
+
+export function useHide2Trigger() {
+  const [triggered, setTriggered] = useState(false);
+
+  useEffect(() => {
+    let inputSequence = '';
+    const targetSequence = 'tsy';
+
+    const handleKeyDown = (e) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : '';
+      
+      if (key) {
+        inputSequence += key;
+
+        if (inputSequence.length > 10) {
+          inputSequence = inputSequence.slice(-10);
+        }
+
+        if (inputSequence.endsWith(targetSequence)) {
+          setTriggered(true);
+          inputSequence = '';
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return { triggered, setTriggered };
 }

@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 import { useNavigate } from 'react-router-dom';
 
-const IMAGE_PATH = '/shapes/heart.png';
-const MAX_IMAGE_SIZE = 150;
+const SHAPE_PATHS = ['/shapes/heart.png', '/shapes/sword.png'];
+const PARTICLE_COUNT = 10000;
 const PINCH_THRESHOLD = 0.08;
 
 const HAND_CONNECTIONS = [
@@ -54,8 +54,10 @@ export default function Hide() {
     let camera, scene, renderer, particleSystem;
     let animationId;
     let stream;
+    let shapesData = [];
+    let currentShapeIndex = 0;
 
-    const parseImageToParticles = (imagePath) => {
+    const parseImageToShapeData = (imagePath) => {
       return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -63,13 +65,14 @@ export default function Hide() {
         img.onload = () => {
           if (!isMounted) return;
           
+          const canvas = document.createElement('canvas');
+          const maxSize = 150;
           let width = img.width;
           let height = img.height;
-          const scale = Math.min(MAX_IMAGE_SIZE / width, MAX_IMAGE_SIZE / height, 1);
+          const scale = Math.min(maxSize / width, maxSize / height, 1);
           width = Math.floor(width * scale);
           height = Math.floor(height * scale);
 
-          const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
@@ -77,7 +80,7 @@ export default function Hide() {
           const imageData = ctx.getImageData(0, 0, width, height);
           const pixels = imageData.data;
 
-          const particles = [];
+          const validPixels = [];
           const centerX = width / 2;
           const centerY = height / 2;
           const maxDim = Math.max(width, height);
@@ -85,26 +88,29 @@ export default function Hide() {
           for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
               const i = (y * width + x) * 4;
-              const r = pixels[i];
-              const g = pixels[i + 1];
-              const b = pixels[i + 2];
               const a = pixels[i + 3];
-
               if (a > 20) {
-                const targetX = (x - centerX) / maxDim * 30;
-                const targetY = -(y - centerY) / maxDim * 30;
-                const targetZ = (Math.random() - 0.5) * 2;
-
-                particles.push({
-                  targetPosition: [targetX, targetY, targetZ],
-                  color: [r / 255, g / 255, b / 255]
+                validPixels.push({
+                  x: (x - centerX) / maxDim * 30,
+                  y: -(y - centerY) / maxDim * 30,
+                  z: (Math.random() - 0.5) * 2
                 });
               }
             }
           }
 
-          console.log(`解析完成，共生成 ${particles.length} 个粒子`);
-          resolve(particles);
+          const targetPositions = new Float32Array(PARTICLE_COUNT * 3);
+          const pixelCount = validPixels.length;
+          
+          for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const pixel = validPixels[i % pixelCount];
+            targetPositions[i * 3] = pixel.x;
+            targetPositions[i * 3 + 1] = pixel.y;
+            targetPositions[i * 3 + 2] = pixel.z;
+          }
+
+          console.log(`解析 ${imagePath} 完成，有效像素: ${pixelCount}，粒子数: ${PARTICLE_COUNT}`);
+          resolve(targetPositions);
         };
 
         img.onerror = () => {
@@ -115,12 +121,32 @@ export default function Hide() {
       });
     };
 
-    const initThreeJS = (particles) => {
+    const loadAllShapes = async () => {
+      const promises = SHAPE_PATHS.map(path => parseImageToShapeData(path));
+      const results = await Promise.all(promises);
+      return results;
+    };
+
+    const generateRandomPositions = () => {
+      const positions = new Float32Array(PARTICLE_COUNT * 3);
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = 30 + Math.random() * 70;
+        
+        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        positions[i * 3 + 2] = r * Math.cos(phi);
+      }
+      return positions;
+    };
+
+    const initThreeJS = (heartPositions, randomPositions) => {
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
       
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.z = 50;
+      camera.position.z = 80;
 
       renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -130,75 +156,115 @@ export default function Hide() {
         containerRef.current.appendChild(renderer.domElement);
       }
 
-      const count = particles.length;
-      const positions = new Float32Array(count * 3);
-      const targetPositions = new Float32Array(count * 3);
-      const colors = new Float32Array(count * 3);
+      const positions = new Float32Array(PARTICLE_COUNT * 3);
+      const aRandomPos = new Float32Array(PARTICLE_COUNT * 3);
+      const aTargetPos = new Float32Array(PARTICLE_COUNT * 3);
+      const aColors = new Float32Array(PARTICLE_COUNT * 3);
 
-      for (let i = 0; i < count; i++) {
-        const p = particles[i];
-        
-        positions[i * 3] = p.targetPosition[0];
-        positions[i * 3 + 1] = p.targetPosition[1];
-        positions[i * 3 + 2] = p.targetPosition[2];
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        positions[i * 3] = randomPositions[i * 3];
+        positions[i * 3 + 1] = randomPositions[i * 3 + 1];
+        positions[i * 3 + 2] = randomPositions[i * 3 + 2];
 
-        targetPositions[i * 3] = p.targetPosition[0];
-        targetPositions[i * 3 + 1] = p.targetPosition[1];
-        targetPositions[i * 3 + 2] = p.targetPosition[2];
+        aRandomPos[i * 3] = randomPositions[i * 3];
+        aRandomPos[i * 3 + 1] = randomPositions[i * 3 + 1];
+        aRandomPos[i * 3 + 2] = randomPositions[i * 3 + 2];
 
-        colors[i * 3] = p.color[0];
-        colors[i * 3 + 1] = p.color[1];
-        colors[i * 3 + 2] = p.color[2];
+        aTargetPos[i * 3] = heartPositions[i * 3];
+        aTargetPos[i * 3 + 1] = heartPositions[i * 3 + 1];
+        aTargetPos[i * 3 + 2] = heartPositions[i * 3 + 2];
+
+        const colorChoice = Math.random();
+        if (colorChoice < 0.6) {
+          aColors[i * 3] = 1.0;
+          aColors[i * 3 + 1] = 0.4 + Math.random() * 0.4;
+          aColors[i * 3 + 2] = 0.6 + Math.random() * 0.4;
+        } else if (colorChoice < 0.85) {
+          aColors[i * 3] = 0.9 + Math.random() * 0.1;
+          aColors[i * 3 + 1] = 0.9 + Math.random() * 0.1;
+          aColors[i * 3 + 2] = 0.95 + Math.random() * 0.05;
+        } else {
+          aColors[i * 3] = 0.7;
+          aColors[i * 3 + 1] = 0.0;
+          aColors[i * 3 + 2] = 0.2;
+        }
       }
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geometry.setAttribute('aTargetPos', new THREE.BufferAttribute(targetPositions, 3));
-      geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+      geometry.setAttribute('aRandomPos', new THREE.BufferAttribute(aRandomPos, 3));
+      geometry.setAttribute('aTargetPos', new THREE.BufferAttribute(aTargetPos, 3));
+      geometry.setAttribute('aColor', new THREE.BufferAttribute(aColors, 3));
 
       const material = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
+          uDispersion: { value: 1.0 },
+          uHandPos: { value: new THREE.Vector3(0, 0, 0) },
           uColorProgress: { value: 0.0 }
         },
         vertexShader: `
           uniform float uTime;
+          uniform float uDispersion;
+          uniform vec3 uHandPos;
+          
+          attribute vec3 aRandomPos;
           attribute vec3 aTargetPos;
           attribute vec3 aColor;
+          
           varying vec3 vColor;
+          varying float vDispersion;
           
           void main() {
-            vec3 pos = aTargetPos;
+            vec3 currentPos = mix(aTargetPos, aRandomPos, uDispersion);
             
-            pos.x += sin(uTime * 2.0 + aTargetPos.x * 0.5) * 0.3;
-            pos.y += cos(uTime * 1.5 + aTargetPos.y * 0.5) * 0.3;
-            pos.z += sin(uTime * 1.8 + aTargetPos.z * 0.5) * 0.2;
+            vec3 followOffset = uHandPos * (1.0 - uDispersion);
+            currentPos += followOffset;
             
-            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            float distToHand = distance(currentPos, uHandPos);
+            if (uDispersion > 0.5 && distToHand < 40.0) {
+              vec3 pushDir = normalize(currentPos - uHandPos);
+              float pushStrength = (40.0 - distToHand) * 0.5;
+              currentPos += pushDir * pushStrength * uDispersion;
+            }
+            
+            currentPos.y += sin(uTime * 2.0 + currentPos.x * 0.1) * 2.0 * uDispersion;
+            currentPos.x += cos(uTime * 1.5 + currentPos.y * 0.1) * 1.5 * uDispersion;
+            currentPos.z += sin(uTime * 1.8 + currentPos.z * 0.1) * 1.0 * uDispersion;
+            
+            vec4 mvPosition = modelViewMatrix * vec4(currentPos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
             
-            gl_PointSize = (80.0 / -mvPosition.z);
+            float sizeFactor = 1.0 + uDispersion * 0.5;
+            gl_PointSize = (60.0 / -mvPosition.z) * sizeFactor;
             
             vColor = aColor;
+            vDispersion = uDispersion;
           }
         `,
         fragmentShader: `
           uniform float uColorProgress;
+          uniform float uDispersion;
+          
           varying vec3 vColor;
+          varying float vDispersion;
           
           void main() {
             float dist = distance(gl_PointCoord, vec2(0.5));
             if (dist > 0.5) discard;
             
             float alpha = 1.0 - smoothstep(0.2, 0.5, dist);
+            alpha *= (1.0 - vDispersion * 0.3);
             
-            vec3 lightColor = vec3(1.0, 0.8, 0.8);
-            vec3 darkRed = vec3(0.7, 0.0, 0.0);
+            vec3 lightColor = vec3(1.0, 0.8, 0.85);
+            vec3 darkRed = vec3(0.8, 0.1, 0.2);
             vec3 finalColor = mix(lightColor, darkRed, uColorProgress);
             
-            finalColor = mix(finalColor, vColor, 0.3);
+            finalColor = mix(finalColor, vColor, 0.4);
             
-            gl_FragColor = vec4(finalColor, alpha * 0.9);
+            finalColor += vec3(0.1, 0.2, 0.3) * vDispersion;
+            
+            gl_FragColor = vec4(finalColor, alpha * 0.85);
           }
         `,
         transparent: true,
@@ -248,7 +314,7 @@ export default function Hide() {
               videoRef.current.height = videoRef.current.videoHeight;
               videoRef.current.play();
               if (statusRef.current) {
-                statusRef.current.innerText = "捏合手指注入能量 | 张开手掌释放光芒";
+                statusRef.current.innerText = "捏合=爱心 | 胜利=大剑 | 张开=消散";
               }
             }
           };
@@ -260,19 +326,32 @@ export default function Hide() {
       }
     };
 
+    const isFingerExtended = (landmarks, fingerTip, fingerPip, fingerMcp) => {
+      const tipY = landmarks[fingerTip].y;
+      const pipY = landmarks[fingerPip].y;
+      const mcpY = landmarks[fingerMcp].y;
+      return tipY < pipY && pipY < mcpY;
+    };
+
     let lastVideoTime = -1;
+    let targetDispersion = 1.0;
     let targetColorProgress = 0.0;
 
     const renderLoop = () => {
       if (!isMounted) return;
 
       if (particleSystem) {
-        particleSystem.material.uniforms.uTime.value += 0.02;
+        const uniforms = particleSystem.material.uniforms;
+        uniforms.uTime.value += 0.016;
         
-        const currentProgress = particleSystem.material.uniforms.uColorProgress.value;
-        particleSystem.material.uniforms.uColorProgress.value += (targetColorProgress - currentProgress) * 0.1;
+        const currentDispersion = uniforms.uDispersion.value;
+        uniforms.uDispersion.value += (targetDispersion - currentDispersion) * 0.05;
         
-        particleSystem.rotation.y = Math.sin(particleSystem.material.uniforms.uTime.value * 0.3) * 0.1;
+        const currentColorProgress = uniforms.uColorProgress.value;
+        uniforms.uColorProgress.value += (targetColorProgress - currentColorProgress) * 0.08;
+        
+        particleSystem.rotation.y = Math.sin(uniforms.uTime.value * 0.2) * 0.15;
+        particleSystem.rotation.x = Math.cos(uniforms.uTime.value * 0.15) * 0.05;
       }
 
       if (handLandmarker && videoRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
@@ -304,17 +383,56 @@ export default function Hide() {
                 drawHand(hudCtx, landmarks, 240, 180);
               }
 
+              const palmCenter = landmarks[9];
+              const handX = (0.5 - palmCenter.x) * 150.0;
+              const handY = -(palmCenter.y - 0.5) * 150.0;
+              const handZ = (palmCenter.z || 0) * 50.0;
+
+              if (particleSystem) {
+                particleSystem.material.uniforms.uHandPos.value.set(handX, handY, handZ);
+              }
+
               const thumbTip = landmarks[4];
               const indexTip = landmarks[8];
-              const dist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+              const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
 
-              if (dist < PINCH_THRESHOLD) {
-                targetColorProgress = 1.0;
-                statusRef.current.innerText = `🔥 能量注入中 | 指间距离: ${dist.toFixed(3)} (捏合)`;
-                statusRef.current.style.color = '#ff1493';
-              } else {
+              const indexExtended = isFingerExtended(landmarks, 8, 6, 5);
+              const middleExtended = isFingerExtended(landmarks, 12, 10, 9);
+              const ringExtended = isFingerExtended(landmarks, 16, 14, 13);
+              const pinkyExtended = isFingerExtended(landmarks, 20, 18, 17);
+
+              const isVictory = indexExtended && middleExtended && !ringExtended && !pinkyExtended;
+
+              if (pinchDist < PINCH_THRESHOLD) {
+                targetDispersion = 0.0;
                 targetColorProgress = 0.0;
-                statusRef.current.innerText = `✅ 已捕捉到手势 | 指间距离: ${dist.toFixed(3)} (张开)`;
+                
+                if (currentShapeIndex !== 0 && shapesData[0]) {
+                  const targetPosAttr = particleSystem.geometry.attributes.aTargetPos;
+                  targetPosAttr.array.set(shapesData[0]);
+                  targetPosAttr.needsUpdate = true;
+                  currentShapeIndex = 0;
+                }
+                
+                statusRef.current.innerText = `💖 爱心凝聚 | 手势: 捏合`;
+                statusRef.current.style.color = '#ff69b4';
+              } else if (isVictory) {
+                targetDispersion = 0.0;
+                targetColorProgress = 0.7;
+                
+                if (currentShapeIndex !== 1 && shapesData[1]) {
+                  const targetPosAttr = particleSystem.geometry.attributes.aTargetPos;
+                  targetPosAttr.array.set(shapesData[1]);
+                  targetPosAttr.needsUpdate = true;
+                  currentShapeIndex = 1;
+                }
+                
+                statusRef.current.innerText = `⚔️ 大剑显现 | 手势: 胜利`;
+                statusRef.current.style.color = '#00ffff';
+              } else {
+                targetDispersion = 1.0;
+                targetColorProgress = 0.3;
+                statusRef.current.innerText = `✨ 星辰消散 | 手势: 张开`;
                 statusRef.current.style.color = '#ff1493';
               }
             }
@@ -348,15 +466,15 @@ export default function Hide() {
     (async () => {
       try {
         if (statusRef.current) {
-          statusRef.current.innerText = "正在解析粒子图谱...";
+          statusRef.current.innerText = "正在加载形状图谱...";
         }
         
-        const particles = await parseImageToParticles(IMAGE_PATH);
+        shapesData = await loadAllShapes();
         
         if (!isMounted) return;
-        if (particles.length === 0) {
+        if (shapesData.length < 2) {
           if (statusRef.current) {
-            statusRef.current.innerText = "图片解析失败：未找到有效像素";
+            statusRef.current.innerText = "形状加载不完整";
           }
           return;
         }
@@ -365,7 +483,8 @@ export default function Hide() {
           statusRef.current.innerText = "正在构建粒子宇宙...";
         }
         
-        removeResizeListener = initThreeJS(particles);
+        const randomPositions = generateRandomPositions();
+        removeResizeListener = initThreeJS(shapesData[0], randomPositions);
         
         if (!isMounted) return;
         
