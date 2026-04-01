@@ -123,13 +123,12 @@ export default function HeartEasterEgg({ onClose }) {
 
     // --- 4. 初始化 MediaPipe 手势识别 ---
     const initMediaPipe = async () => {
-      const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-      );
+      const wasmPath = window.location.origin + "/wasm";
+      const vision = await FilesetResolver.forVisionTasks(wasmPath);
       handLandmarker = await HandLandmarker.createFromOptions(vision, {
         baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-          delegate: "GPU"
+          modelAssetPath: "/hand_landmarker.task",
+          delegate: "CPU"
         },
         runningMode: "VIDEO",
         numHands: 2 // 必须设为2才能识别双手合十
@@ -227,7 +226,7 @@ export default function HeartEasterEgg({ onClose }) {
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, backgroundColor: 'black' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       {/* 隐藏的 video 标签供 MediaPipe 读取摄像头 */}
-      <video ref={videoRef} style={{ display: 'none' }} playsInline></video>
+      <video ref={videoRef} style={{ display: 'none' }} autoPlay playsInline muted></video>
       <div style={{ position: 'absolute', bottom: '40px', width: '100%', textAlign: 'center', color: '#ff69b4', fontFamily: 'monospace', fontSize: '1.2rem', textShadow: '0 0 10px #ff69b4' }}>
         {statusText}
       </div>
