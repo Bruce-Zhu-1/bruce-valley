@@ -1,0 +1,23 @@
+.p5-btn-ctn {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: var(--p5-color-white);
+  font-family: "P5Font", sans-serif;
+  font-weight: 700;
+  padding: 10px 20px;
+  z-index: 1;
+  background-color: var(--p5-color-black);
+  border: none;
+  transition: transform 0.2s ease;
+}
+
+.p5-btn-ctn:hover {
+  filter: brightness(1.2);
+}
+
+.p5-btn-ctn:active {
+  transform: scale(0.95);
+}

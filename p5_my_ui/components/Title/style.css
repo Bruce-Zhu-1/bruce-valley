@@ -1,0 +1,9 @@
+.p5-title-ctn {
+  display: inline-block;
+  margin: 0;
+}
+
+.p5-title-ctn span {
+  display: inline-block;
+  padding: 2px 2px;
+}

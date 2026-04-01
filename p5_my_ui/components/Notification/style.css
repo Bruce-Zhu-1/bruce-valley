@@ -1,0 +1,52 @@
+.p5-noti-ctn {
+  position: fixed;
+  transition: all 0.5s;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.p5-noti-sub-ctn {
+  position: relative;
+}
+
+.p5-portrait-img {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  left: 0;
+  width: 160px;
+}
+
+.p5-dialog-ctn {
+  position: relative;
+  width: 350px;
+  height: 20px;
+  margin-left: 150px;
+}
+
+.p5-dialog-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  z-index: -1;
+}
+
+.p5-noti-title {
+  position: absolute;
+  top: -38px;
+  left: -12px;
+  transform: rotate(-16deg);
+}
+
+.p5-noti-text {
+  width: 340px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-top: 10px;
+  color: var(--p5-color-white);
+  font-family: "P5Font", sans-serif;
+}

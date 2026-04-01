@@ -11,3 +11,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# P5 UI source folder (Vue)
+p5_ui/
+
+# P5 My UI build artifacts
+p5_my_ui/node_modules/
+p5_my_ui/dist/
