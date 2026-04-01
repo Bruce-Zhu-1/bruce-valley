@@ -2,6 +2,8 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import useSound from 'use-sound'
 import HomeCanvas from '../components/HomeCanvas'
+import { useEasterEggTrigger } from '../finger_gesture/useKonamiCode'
+import HeartEasterEgg from '../finger_gesture/HeartEasterEgg'
 import '../index.css'
 
 const menuItems = [
@@ -51,6 +53,7 @@ function MenuButton({ item, playSelect }) {
 
 function Home() {
   const [playSelect] = useSound('/music/sfx/select.mp3', { volume: 0.5 })
+  const { isActive, setIsActive } = useEasterEggTrigger()
   
   return (
     <motion.main 
@@ -214,6 +217,8 @@ function Home() {
             drop-shadow(0 10px 25px rgba(0, 0, 0, 0.8)) !important;
         }
       `}</style>
+      
+      {isActive && <HeartEasterEgg onClose={() => setIsActive(false)} />}
     </motion.main>
   )
 }
