@@ -91,8 +91,8 @@ export default function Hide() {
               const a = pixels[i + 3];
               if (a > 20) {
                 validPixels.push({
-                  x: (x - centerX) / maxDim * 30,
-                  y: -(y - centerY) / maxDim * 30,
+                  x: (x - centerX) / maxDim * 100,
+                  y: -(y - centerY) / maxDim * 100,
                   z: (Math.random() - 0.5) * 2
                 });
               }
@@ -257,7 +257,7 @@ export default function Hide() {
             alpha *= (1.0 - vDispersion * 0.3);
             
             vec3 lightColor = vec3(1.0, 0.8, 0.85);
-            vec3 darkRed = vec3(0.8, 0.1, 0.2);
+            vec3 darkRed = vec3(0.9, 0.0, 0.05);
             vec3 finalColor = mix(lightColor, darkRed, uColorProgress);
             
             finalColor = mix(finalColor, vColor, 0.4);

@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
 import Home from './pages/Home'
 import Diaries from './pages/Diaries'
 import DiaryDetail from './pages/DiaryDetail'
@@ -13,6 +14,7 @@ import Notes from './pages/Notes'
 import NotesAuthor from './pages/NotesAuthor'
 import NotesArticle from './pages/NotesArticle'
 import Hide from './pages/Hide'
+import Hide2 from './pages/Hide2'
 import GlobalBackground from './components/GlobalBackground'
 import GlobalAudioPlayer from './components/GlobalAudioPlayer'
 import Preloader from './components/Preloader'
@@ -20,6 +22,32 @@ import CustomCursor from './components/CustomCursor'
 
 function App() {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let inputSequence = ''
+    const targetSequence = 'tsy'
+
+    const handleKeyDown = (e) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : ''
+      
+      if (key) {
+        inputSequence += key
+
+        if (inputSequence.length > 10) {
+          inputSequence = inputSequence.slice(-10)
+        }
+
+        if (inputSequence.endsWith(targetSequence)) {
+          navigate('/hide2')
+          inputSequence = ''
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [navigate])
   
   return (
     <AnimatePresence mode="wait">
@@ -37,6 +65,7 @@ function App() {
         <Route path="/notes/:author" element={<NotesAuthor />} />
         <Route path="/notes/:author/:articleId" element={<NotesArticle />} />
         <Route path="/hide" element={<Hide />} />
+        <Route path="/hide2" element={<Hide2 />} />
       </Routes>
     </AnimatePresence>
   )
