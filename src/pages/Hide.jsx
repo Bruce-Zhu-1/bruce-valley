@@ -11,13 +11,11 @@ export default function Hide() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let isMounted = true; // 极其重要的防异步竞态锁
-    let canExit = false;  // 退出冷却锁
+    let isMounted = true; 
+    let canExit = false;  
     
-    // 延迟解锁退出机制 (从组件挂载算起 3 秒后，防止 AI 初始的垃圾坐标误触退出)
-    const exitTimer = setTimeout(() => {
-        canExit = true;
-    }, 3000);
+    // 3秒保护期，防止刚进页面手乱动触发退出
+    const exitTimer = setTimeout(() => { canExit = true; }, 3000);
 
     let handLandmarker;
     let camera, scene, renderer, particleSystem;
@@ -25,28 +23,33 @@ export default function Hide() {
     let stream;
     let removeResizeListener;
 
-    // --- 1. 生成粒子坐标 ---
-    const PARTICLE_COUNT = 6000; // 降低数量保性能，防止显卡压力过大
+    // --- 1. 生成实心爱心粒子 (利用数学公式) ---
+    const PARTICLE_COUNT = 8000; 
     const generateParticles = () => {
       const positions = new Float32Array(PARTICLE_COUNT * 3);
       const randomPositions = new Float32Array(PARTICLE_COUNT * 3);
       const heartPositions = new Float32Array(PARTICLE_COUNT * 3);
 
       for (let i = 0; i < PARTICLE_COUNT; i++) {
-        randomPositions[i * 3] = (Math.random() - 0.5) * 150;
-        randomPositions[i * 3 + 1] = (Math.random() - 0.5) * 150;
-        randomPositions[i * 3 + 2] = (Math.random() - 0.5) * 150;
+        // 初始散乱位置：布满整个空间
+        randomPositions[i * 3] = (Math.random() - 0.5) * 300;
+        randomPositions[i * 3 + 1] = (Math.random() - 0.5) * 300;
+        randomPositions[i * 3 + 2] = (Math.random() - 0.5) * 300;
 
-        const t = Math.PI * 2 * Math.random();
-        const u = Math.PI * Math.random();
-        const x = 16 * Math.pow(Math.sin(t), 3) * (0.5 + 0.5 * Math.sin(u));
-        const y = (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * (0.5 + 0.5 * Math.sin(u));
-        const z = (Math.random() - 0.5) * 15;
+        // 实心爱心参数方程生成
+        const t = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()); // 保证圆内均匀分布
+        
+        // 经典爱心曲线
+        const hx = 16 * Math.pow(Math.sin(t), 3);
+        const hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+        
+        // 缩放并翻转 Y 轴，增加一点 Z 轴厚度
+        heartPositions[i * 3] = hx * r * 1.5; 
+        heartPositions[i * 3 + 1] = hy * r * 1.5;
+        heartPositions[i * 3 + 2] = (Math.random() - 0.5) * 5; 
 
-        heartPositions[i * 3] = x * 0.8;
-        heartPositions[i * 3 + 1] = y * 0.8;
-        heartPositions[i * 3 + 2] = z;
-
+        // 赋予初始坐标
         positions[i * 3] = randomPositions[i * 3];
         positions[i * 3 + 1] = randomPositions[i * 3 + 1];
         positions[i * 3 + 2] = randomPositions[i * 3 + 2];
@@ -54,21 +57,18 @@ export default function Hide() {
       return { positions, randomPositions, heartPositions };
     };
 
-    // --- 2. 初始化 Three.js ---
+    // --- 2. 初始化 Three.js 引擎 ---
     const initThreeJS = () => {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000); // 绝对纯黑，防止透色
+      scene.background = new THREE.Color(0x000000);
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.z = 40;
+      camera.position.z = 60; // 稍微拉远一点，看全景
 
-      // 关闭抗锯齿并开启高性能模式
       renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      if (containerRef.current) {
-        containerRef.current.appendChild(renderer.domElement);
-      }
+      if (containerRef.current) containerRef.current.appendChild(renderer.domElement);
 
       const { positions, randomPositions, heartPositions } = generateParticles();
 
@@ -80,8 +80,8 @@ export default function Hide() {
       const material = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
-          uProgress: { value: 0.0 },
-          uColor: { value: new THREE.Color(0xff69b4) }
+          uProgress: { value: 0.0 }, // 0: 散开, 1: 聚成爱心
+          uColor: { value: new THREE.Color(0xff1493) } // DeepPink
         },
         vertexShader: `
           uniform float uTime;
@@ -91,20 +91,24 @@ export default function Hide() {
           varying vec3 vPos;
           void main() {
             vec3 targetPos = mix(aRandomPos, aHeartPos, uProgress);
-            targetPos.y += sin(uTime * 2.0 + targetPos.x) * 0.5;
+            // 微微的浮动感
+            targetPos.y += sin(uTime * 2.0 + targetPos.x * 0.1) * 2.0;
             vec4 mvPosition = modelViewMatrix * vec4(targetPos, 1.0);
             gl_Position = projectionMatrix * mvPosition;
-            gl_PointSize = (20.0 / -mvPosition.z) * (1.0 + uProgress * 2.0);
+            
+            // 【核心修正】大幅增加粒子尺寸
+            gl_PointSize = (300.0 / -mvPosition.z) * (1.0 + uProgress * 0.5);
             vPos = targetPos;
           }
         `,
         fragmentShader: `
           uniform vec3 uColor;
           void main() {
+            // 让方形的点变成圆形发光体
             float distanceToCenter = distance(gl_PointCoord, vec2(0.5));
             if (distanceToCenter > 0.5) discard;
-            float alpha = 1.0 - (distanceToCenter * 2.0);
-            gl_FragColor = vec4(uColor, alpha * 0.8);
+            float alpha = 1.0 - (distanceToCenter * 2.0); // 边缘变淡
+            gl_FragColor = vec4(uColor, alpha);
           }
         `,
         transparent: true,
@@ -125,75 +129,90 @@ export default function Hide() {
       return handleResize;
     };
 
-    // --- 3. 初始化 MediaPipe ---
+    // --- 3. 初始化 AI 手势模型 ---
     const initMediaPipe = async () => {
       try {
         const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
-        if (!isMounted) return; // 防竞态中断
+        if (!isMounted) return;
 
         handLandmarker = await HandLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-            delegate: "CPU" // 必须是 CPU，绝不能和 Three.js 抢显存
+            delegate: "CPU"
           },
           runningMode: "VIDEO",
-          numHands: 2
+          numHands: 1 // 为了性能，只检测一只手就足够了
         });
-        if (!isMounted) return; // 防竞态中断
 
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        if (!isMounted) {
-            stream.getTracks().forEach(track => track.stop());
-            return;
-        }
+        if (!isMounted) { stream.getTracks().forEach(track => track.stop()); return; }
 
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
             videoRef.current.onloadedmetadata = () => {
                 if (isMounted && videoRef.current) {
                     videoRef.current.play();
-                    setStatusText("双手合十：退出 | 握拳：聚合 | 张开：消散");
+                    setStatusText("捏合拇指食指：退出 | 握拳：爱心 | 张开：消散");
                 }
             };
         }
       } catch (error) {
-        console.error("MediaPipe 初始化失败:", error);
-        if (isMounted) setStatusText("初始化失败，请检查摄像头权限与网络");
+        if (isMounted) setStatusText("摄像头开启失败");
       }
     };
 
-    // --- 4. 手势判断逻辑 ---
-    const getDist = (p1, p2) => Math.sqrt((p1.x-p2.x)**2 + (p1.y-p2.y)**2 + (p1.z-p2.z)**2);
-    
-    const isFist = (landmarks) => {
+    // --- 4. 极致简化的全新手势逻辑 ---
+    const getD = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+    const checkGesture = (landmarks) => {
       const wrist = landmarks[0];
+      const thumbTip = landmarks[4];
       const indexTip = landmarks[8];
-      const middleTip = landmarks[12];
-      const middleKnuckle = landmarks[9];
-      const palmSize = getDist(wrist, middleKnuckle);
-      const tipDist = (getDist(wrist, indexTip) + getDist(wrist, middleTip)) / 2;
-      return tipDist < palmSize * 1.2;
+
+      // 【动作 C：退出】捏合大拇指和食指 (Pinch)
+      const pinchDist = getD(thumbTip, indexTip);
+      if (pinchDist < 0.05) return 'EXIT';
+
+      let curledFingers = 0;
+      const tips = [8, 12, 16, 20]; // 食指、中指、无名指、小指 指尖
+      const mcps = [5, 9, 13, 17];  // 对应的手指根部
+
+      // 如果指尖比指根离手腕还近，说明手指弯曲了
+      for (let i = 0; i < 4; i++) {
+        if (getD(wrist, landmarks[tips[i]]) < getD(wrist, landmarks[mcps[i]])) {
+          curledFingers++;
+        }
+      }
+
+      // 【动作 B：聚成爱心】3 根或 4 根手指弯曲，即为握拳
+      if (curledFingers >= 3) return 'GATHER';
+      
+      // 【动作 A：消散粒子】几乎没有手指弯曲，即为张开手掌
+      if (curledFingers <= 1) return 'DISPERSE';
+
+      return 'HOLD'; // 中间状态，保持当前进度不动
     };
 
-    const isClaspedHands = (multiHandLandmarks) => {
-      if (multiHandLandmarks.length !== 2) return false;
-      const hand1Wrist = multiHandLandmarks[0][0];
-      const hand2Wrist = multiHandLandmarks[1][0];
-      const dist = Math.sqrt((hand1Wrist.x - hand2Wrist.x)**2 + (hand1Wrist.y - hand2Wrist.y)**2);
-      return dist < 0.15;
+    // --- 5. 键盘兜底退出机制 ---
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key === ' ') {
+        handleExit();
+      }
     };
+    window.addEventListener('keydown', handleKeyDown);
 
-    // --- 5. 渲染循环 ---
+    // --- 6. 渲染循环 ---
     let lastVideoTime = -1;
     let targetProgress = 0;
 
     const renderLoop = () => {
-      if (!isMounted) return; // 核心：如果组件卸载，立刻停止动画递归
+      if (!isMounted) return;
 
       if (particleSystem) {
           particleSystem.material.uniforms.uTime.value += 0.02;
+          // 平滑过渡进度 (缓动算法)
           particleSystem.material.uniforms.uProgress.value += (targetProgress - particleSystem.material.uniforms.uProgress.value) * 0.1;
-          particleSystem.rotation.y = Math.sin(particleSystem.material.uniforms.uTime.value * 0.5) * 0.3;
+          particleSystem.rotation.y = Math.sin(particleSystem.material.uniforms.uTime.value * 0.3) * 0.2; // 整体轻微旋转
       }
 
       if (handLandmarker && videoRef.current && videoRef.current.readyState >= 2) {
@@ -203,15 +222,15 @@ export default function Hide() {
           const results = handLandmarker.detectForVideo(videoRef.current, startTimeMs);
 
           if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            // 必须在 canExit (3秒冷冻期) 结束后，才能触发退出
-            if (canExit && isClaspedHands(results.multiHandLandmarks)) {
+            const action = checkGesture(results.multiHandLandmarks[0]);
+            
+            if (action === 'EXIT' && canExit) {
               handleExit();
               return; 
-            }
-            if (isFist(results.multiHandLandmarks[0])) {
-              targetProgress = 1.0;
-            } else {
-              targetProgress = 0.0;
+            } else if (action === 'GATHER') {
+              targetProgress = 1.0; // 目标状态：聚集成心
+            } else if (action === 'DISPERSE') {
+              targetProgress = 0.0; // 目标状态：散开
             }
           }
         }
@@ -223,21 +242,20 @@ export default function Hide() {
       animationId = requestAnimationFrame(renderLoop);
     };
 
-    // --- 6. 退出执行 ---
+    // --- 7. 彻底清理环境与退出 ---
     const handleExit = () => {
-      isMounted = false; // 阻断所有后续执行
+      isMounted = false;
       navigate('/');
     };
 
-    // --- 启动流程 ---
     removeResizeListener = initThreeJS();
-    renderLoop(); // 1. 无视 AI 状态，立刻启动 Three.js 渲染粒子宇宙
-    initMediaPipe(); // 2. 让 AI 在后台默默异步加载，加载好后手势会自动介入
+    renderLoop(); 
+    initMediaPipe(); 
 
-    // --- 7. 最严厉的清理函数 (防 Context Lost 杀手锏) ---
     return () => {
       isMounted = false;
       clearTimeout(exitTimer);
+      window.removeEventListener('keydown', handleKeyDown); // 卸载按键监听
       
       if (animationId) cancelAnimationFrame(animationId);
       if (removeResizeListener) window.removeEventListener('resize', removeResizeListener);
@@ -254,7 +272,7 @@ export default function Hide() {
 
       if (renderer) {
         renderer.dispose();
-        renderer.forceContextLoss(); // 解决 Context Lost 的杀手锏
+        renderer.forceContextLoss(); // 防显存泄漏
         if (containerRef.current && containerRef.current.contains(renderer.domElement)) {
           containerRef.current.removeChild(renderer.domElement);
         }
@@ -265,8 +283,9 @@ export default function Hide() {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 99999, backgroundColor: 'black' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-      <video ref={videoRef} style={{ display: 'none' }} autoPlay playsInline muted></video>
-      <div style={{ position: 'absolute', bottom: '40px', width: '100%', textAlign: 'center', color: '#ff69b4', fontFamily: 'monospace', fontSize: '1.2rem', textShadow: '0 0 10px #ff69b4', pointerEvents: 'none' }}>
+      {/* 视频标签只需在后台静默运行 */}
+      <video ref={videoRef} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', zIndex: -1 }} autoPlay playsInline muted></video>
+      <div style={{ position: 'absolute', bottom: '40px', width: '100%', textAlign: 'center', color: '#ff1493', fontFamily: 'monospace', fontSize: '1.2rem', textShadow: '0 0 10px #ff1493', pointerEvents: 'none' }}>
         {statusText}
       </div>
     </div>
