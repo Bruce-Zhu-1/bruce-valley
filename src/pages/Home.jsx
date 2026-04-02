@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import useSound from 'use-sound'
 import HomeCanvas from '../components/HomeCanvas'
-import { useEasterEggTrigger, useHide2Trigger } from '../finger_gesture/useKonamiCode'
+import { useEasterEggTrigger, useHide2Trigger, useHide3Trigger } from '../finger_gesture/useKonamiCode'
 import '../index.css'
 
 const menuItems = [
@@ -56,6 +56,7 @@ function Home() {
   const navigate = useNavigate();
   const { isActive, setIsActive } = useEasterEggTrigger()
   const { triggered, setTriggered } = useHide2Trigger()
+  const { triggered: hide3Triggered, setTriggered: setHide3Triggered } = useHide3Trigger()
 
   useEffect(() => {
     if (isActive) {
@@ -70,6 +71,13 @@ function Home() {
       navigate('/hide2');
     }
   }, [triggered, navigate, setTriggered]);
+
+  useEffect(() => {
+    if (hide3Triggered) {
+      setHide3Triggered(false);
+      navigate('/hide3');
+    }
+  }, [hide3Triggered, navigate, setHide3Triggered]);
   
   return (
     <motion.main 
