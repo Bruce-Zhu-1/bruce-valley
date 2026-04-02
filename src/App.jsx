@@ -16,6 +16,7 @@ import NotesArticle from './pages/NotesArticle'
 import Hide from './pages/Hide'
 import Hide2 from './pages/Hide2'
 import Hide3 from './pages/Hide3'
+import Hide4 from './pages/Hide4'
 import GlobalBackground from './components/GlobalBackground'
 import GlobalAudioPlayer from './components/GlobalAudioPlayer'
 import Preloader from './components/Preloader'
@@ -68,6 +69,7 @@ function App() {
         <Route path="/hide" element={<Hide />} />
         <Route path="/hide2" element={<Hide2 />} />
         <Route path="/hide3" element={<Hide3 />} />
+        <Route path="/hide4" element={<Hide4 />} />
       </Routes>
     </AnimatePresence>
   )

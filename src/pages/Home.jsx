@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import useSound from 'use-sound'
 import HomeCanvas from '../components/HomeCanvas'
-import { useEasterEggTrigger, useHide2Trigger, useHide3Trigger } from '../finger_gesture/useKonamiCode'
+import { useEasterEggTrigger, useHide2Trigger, useHide3Trigger, useHide4Trigger } from '../finger_gesture/useKonamiCode'
 import '../index.css'
 
 const menuItems = [
@@ -57,6 +57,7 @@ function Home() {
   const { isActive, setIsActive } = useEasterEggTrigger()
   const { triggered, setTriggered } = useHide2Trigger()
   const { triggered: hide3Triggered, setTriggered: setHide3Triggered } = useHide3Trigger()
+  const { triggered: hide4Triggered, setTriggered: setHide4Triggered } = useHide4Trigger()
 
   useEffect(() => {
     if (isActive) {
@@ -78,6 +79,13 @@ function Home() {
       navigate('/hide3');
     }
   }, [hide3Triggered, navigate, setHide3Triggered]);
+
+  useEffect(() => {
+    if (hide4Triggered) {
+      setHide4Triggered(false);
+      navigate('/hide4');
+    }
+  }, [hide4Triggered, navigate, setHide4Triggered]);
   
   return (
     <motion.main 
@@ -290,6 +298,30 @@ function Home() {
           title="跳转到 Hide3 (面部追踪)"
         >
           F
+        </motion.div>
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/hide4')}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 215, 0, 0.1)',
+            color: '#ffd700',
+            border: '1px solid rgba(255, 215, 0, 0.3)',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)'
+          }}
+          title="跳转到 Hide4 (Live2D)"
+        >
+          Z
         </motion.div>
       </div>
       

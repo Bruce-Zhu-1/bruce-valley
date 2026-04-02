@@ -97,3 +97,40 @@ export function useHide3Trigger() {
 
   return { triggered, setTriggered };
 }
+
+export function useHide4Trigger() {
+  const [triggered, setTriggered] = useState(false);
+
+  useEffect(() => {
+    let inputSequence = '';
+    const targetSequence = 'zyjEnter';
+
+    const handleKeyDown = (e) => {
+      let key = '';
+      
+      if (e.key.length === 1) {
+        key = e.key.toLowerCase();
+      } else if (e.key === 'Enter') {
+        key = 'Enter';
+      }
+      
+      if (key) {
+        inputSequence += key;
+
+        if (inputSequence.length > 20) {
+          inputSequence = inputSequence.slice(-20);
+        }
+
+        if (inputSequence.toLowerCase().endsWith(targetSequence.toLowerCase())) {
+          setTriggered(true);
+          inputSequence = '';
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return { triggered, setTriggered };
+}
