@@ -203,6 +203,88 @@ function Home() {
         
       </div>
       
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 9999,
+        display: 'flex',
+        gap: '10px'
+      }}>
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/hide')}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 255, 255, 0.1)',
+            color: '#00ffff',
+            border: '1px solid rgba(0, 255, 255, 0.3)',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 10px rgba(0, 255, 255, 0.2)'
+          }}
+          title="跳转到 Hide (3D粒子)"
+        >
+          Y
+        </motion.div>
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/hide2')}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 0, 255, 0.1)',
+            color: '#ff00ff',
+            border: '1px solid rgba(255, 0, 255, 0.3)',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 10px rgba(255, 0, 255, 0.2)'
+          }}
+          title="跳转到 Hide2 (赛博朋克)"
+        >
+          T
+        </motion.div>
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/hide3')}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+            color: '#00ff88',
+            border: '1px solid rgba(0, 255, 136, 0.3)',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 10px rgba(0, 255, 136, 0.2)'
+          }}
+          title="跳转到 Hide3 (面部追踪)"
+        >
+          F
+        </motion.div>
+      </div>
+      
       <style>{`
         @keyframes float {
           0%, 100% {

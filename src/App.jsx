@@ -15,6 +15,7 @@ import NotesAuthor from './pages/NotesAuthor'
 import NotesArticle from './pages/NotesArticle'
 import Hide from './pages/Hide'
 import Hide2 from './pages/Hide2'
+import Hide3 from './pages/Hide3'
 import GlobalBackground from './components/GlobalBackground'
 import GlobalAudioPlayer from './components/GlobalAudioPlayer'
 import Preloader from './components/Preloader'
@@ -66,6 +67,7 @@ function App() {
         <Route path="/notes/:author/:articleId" element={<NotesArticle />} />
         <Route path="/hide" element={<Hide />} />
         <Route path="/hide2" element={<Hide2 />} />
+        <Route path="/hide3" element={<Hide3 />} />
       </Routes>
     </AnimatePresence>
   )
