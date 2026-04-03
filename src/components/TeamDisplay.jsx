@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import styles from './TeamDisplay.module.css'
 
 const teamMembers = [
@@ -13,6 +14,11 @@ const bgImage = '/roles/background0.webp'
 
 function TeamDisplay() {
   const [hoveredId, setHoveredId] = useState(null)
+  const navigate = useNavigate()
+
+  const handleCardClick = () => {
+    navigate('/face-auth')
+  }
 
   const getPositionStyle = (position) => {
     switch (position) {
@@ -101,6 +107,7 @@ function TeamDisplay() {
                 style={style}
                 onMouseEnter={() => setHoveredId(member.id)}
                 onMouseLeave={() => setHoveredId(null)}
+                onClick={handleCardClick}
               >
                 <img
                   src={member.image}

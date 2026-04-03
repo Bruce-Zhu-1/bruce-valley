@@ -17,6 +17,7 @@
     "@react-three/fiber": "^8.15.12",
     "@react-three/postprocessing": "^2.15.11",
     "@supabase/supabase-js": "^2.100.1",
+    "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.6.5",
     "dompurify": "^3.3.3",
     "framer-motion": "^10.18.0",

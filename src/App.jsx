@@ -17,6 +17,8 @@ import Hide from './pages/Hide'
 import Hide2 from './pages/Hide2'
 import Hide3 from './pages/Hide3'
 import Hide4 from './pages/Hide4'
+import FaceAuth from './pages/FaceAuth'
+import ArSpace from './pages/ArSpace'
 import GlobalBackground from './components/GlobalBackground'
 import GlobalAudioPlayer from './components/GlobalAudioPlayer'
 import Preloader from './components/Preloader'
@@ -70,6 +72,8 @@ function App() {
         <Route path="/hide2" element={<Hide2 />} />
         <Route path="/hide3" element={<Hide3 />} />
         <Route path="/hide4" element={<Hide4 />} />
+        <Route path="/face-auth" element={<FaceAuth />} />
+        <Route path="/ar-space" element={<ArSpace />} />
       </Routes>
     </AnimatePresence>
   )
