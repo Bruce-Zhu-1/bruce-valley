@@ -1,7 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { FilesetResolver, FaceLandmarker } from '@mediapipe/tasks-vision';
+import React, { useEffect, useRef } from 'react';
+import { FilesetResolver, FaceLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 import { useNavigate } from 'react-router-dom';
 import { Face } from 'kalidokit';
+
+const HAND_CONNECTIONS = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12],
+  [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [0, 17], [17, 18], [18, 19], [19, 20]
+];
 
 export default function Hide4() {
   const live2dContainerRef = useRef(null);
@@ -11,13 +19,16 @@ export default function Hide4() {
   const audioRef = useRef(null);
   const navigate = useNavigate();
 
-  const rigRef = useRef(null);
+  const rigRef = useRef({ face: null, arm: undefined });
   const appRef = useRef(null);
   const modelRef = useRef(null);
+  const dragRef = useRef({ isDragging: false, offsetX: 0, offsetY: 0 });
+  const scaleRef = useRef(0.35);
 
   useEffect(() => {
     let isMounted = true;
     let faceLandmarker;
+    let handLandmarker;
     let animationId;
     let stream;
 
@@ -45,39 +56,93 @@ export default function Hide4() {
       }
 
       try {
-        const currentModel = await window.PIXI.live2d.Live2DModel.from('/models/hiyori/hiyori_free_t08.model3.json');
+        const currentModel = await window.PIXI.live2d.Live2DModel.from('/models/hiyori/hiyori_pro_t10.model3.json');
         
         if (!isMounted) {
           currentModel.destroy();
           return;
         }
 
-        currentModel.scale.set(0.35);
+        currentModel.scale.set(scaleRef.current);
         currentModel.anchor.set(0.5, 0.5);
         currentModel.position.set(window.innerWidth / 2, window.innerHeight / 2 + 100);
         app.stage.addChild(currentModel);
         
         modelRef.current = currentModel;
 
-        const lerp = (a, b, t) => a + (b - a) * t;
+        currentModel.interactive = true;
+        currentModel.buttonMode = true;
+
+        currentModel.on('pointerdown', (e) => {
+          dragRef.current.isDragging = true;
+          const pos = e.data.global;
+          dragRef.current.offsetX = pos.x - currentModel.position.x;
+          dragRef.current.offsetY = pos.y - currentModel.position.y;
+        });
+
+        currentModel.on('pointermove', (e) => {
+          if (dragRef.current.isDragging) {
+            const pos = e.data.global;
+            currentModel.position.x = pos.x - dragRef.current.offsetX;
+            currentModel.position.y = pos.y - dragRef.current.offsetY;
+          }
+        });
+
+        currentModel.on('pointerup', () => {
+          dragRef.current.isDragging = false;
+        });
+
+        currentModel.on('pointerupoutside', () => {
+          dragRef.current.isDragging = false;
+        });
+
+        app.view.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const scaleDelta = e.deltaY > 0 ? -0.02 : 0.02;
+          scaleRef.current = Math.max(0.1, Math.min(2.0, scaleRef.current + scaleDelta));
+          currentModel.scale.set(scaleRef.current);
+        }, { passive: false });
 
         currentModel.internalModel.motionManager.update = (...args) => {
           const rig = rigRef.current;
-          if (rig && currentModel.internalModel.coreModel) {
-            const core = currentModel.internalModel.coreModel;
+          if (!rig || !rig.face || !currentModel.internalModel.coreModel) return;
 
-            core.setParameterValueById('ParamAngleX', lerp(core.getParameterValueById('ParamAngleX'), rig.head.degrees.y, 0.2));
-            core.setParameterValueById('ParamAngleY', lerp(core.getParameterValueById('ParamAngleY'), rig.head.degrees.x, 0.2));
-            core.setParameterValueById('ParamAngleZ', lerp(core.getParameterValueById('ParamAngleZ'), rig.head.degrees.z, 0.2));
+          const core = currentModel.internalModel.coreModel;
+          const face = rig.face;
 
-            core.setParameterValueById('ParamBodyAngleX', lerp(core.getParameterValueById('ParamBodyAngleX'), rig.head.degrees.y * 0.5, 0.2));
-            core.setParameterValueById('ParamEyeBallX', rig.pupil.x);
-            core.setParameterValueById('ParamEyeBallY', rig.pupil.y);
+          const lerpAmount = 0.12;
+          const lerp = (a, b, t) => a + (b - a) * t;
+          
+          const setParam = (id, value) => {
+            if (value === undefined || value === null || isNaN(value)) return;
+            const current = core.getParameterValueById(id);
+            core.setParameterValueById(id, lerp(current, value, lerpAmount));
+          };
 
-            core.setParameterValueById('ParamEyeLOpen', lerp(core.getParameterValueById('ParamEyeLOpen'), rig.eye.l, 0.5));
-            core.setParameterValueById('ParamEyeROpen', lerp(core.getParameterValueById('ParamEyeROpen'), rig.eye.r, 0.5));
-            core.setParameterValueById('ParamMouthOpenY', lerp(core.getParameterValueById('ParamMouthOpenY'), rig.mouth.y, 0.5));
-            core.setParameterValueById('ParamMouthForm', rig.mouth.x);
+          setParam('ParamAngleX', face.head?.degrees?.y * 1.1);
+          setParam('ParamAngleY', face.head?.degrees?.x * 1.1);
+          setParam('ParamAngleZ', face.head?.degrees?.z * 1.1);
+
+          setParam('ParamEyeBallX', face.pupil?.x);
+          setParam('ParamEyeBallY', face.pupil?.y);
+
+          const eyeL = Math.max(0, Math.min(1, face.eye?.l * 1.2));
+          const eyeR = Math.max(0, Math.min(1, face.eye?.r * 1.2));
+          setParam('ParamEyeLOpen', eyeL);
+          setParam('ParamEyeROpen', eyeR);
+          
+          setParam('ParamBrowLY', face.brow);
+          setParam('ParamBrowRY', face.brow);
+          
+          const mouthOpen = Math.max(0, Math.min(1, face.mouth?.y * 1.3));
+          setParam('ParamMouthOpenY', mouthOpen);
+          setParam('ParamMouthForm', face.mouth?.x);
+
+          setParam('ParamBodyAngleX', face.head?.degrees?.y * 0.5);
+
+          if (rig.arm !== undefined) {
+            setParam('ParamArmLA', rig.arm);
+            setParam('ParamArmRA', rig.arm);
           }
         };
 
@@ -105,6 +170,16 @@ export default function Hide4() {
           runningMode: "VIDEO",
           numFaces: 1
         });
+
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "/hand_landmarker.task",
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numHands: 2
+        });
+
         if (!isMounted) return;
 
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -120,24 +195,65 @@ export default function Hide4() {
               videoRef.current.width = videoRef.current.videoWidth;
               videoRef.current.height = videoRef.current.videoHeight;
               videoRef.current.play();
+              
+              if (canvasRef.current) {
+                canvasRef.current.width = videoRef.current.videoWidth;
+                canvasRef.current.height = videoRef.current.videoHeight;
+              }
             }
           };
         }
+
+        if (statusRef.current) {
+          statusRef.current.innerText = "[双引擎就绪] 面部 + 手势识别已启动";
+        }
       } catch (error) {
         if (isMounted && statusRef.current) {
-          statusRef.current.innerText = "[信号中断] 摄像头初始化失败";
+          statusRef.current.innerText = `[信号中断] 摄像头初始化失败: ${error.message}`;
         }
       }
     };
 
     const drawFaceMesh = (ctx, landmarks, width, height) => {
-      ctx.clearRect(0, 0, width, height);
+      const pointSize = Math.max(1, Math.min(width, height) / 300);
+      
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 3;
+      ctx.shadowColor = '#00ffff';
       
       landmarks.forEach((point, i) => {
-        ctx.fillStyle = `hsl(${(i / 478) * 360}, 100%, 60%)`;
-        ctx.shadowBlur = 2;
-        ctx.shadowColor = `hsl(${(i / 478) * 360}, 100%, 60%)`;
-        ctx.fillRect(point.x * width, point.y * height, 2, 2);
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath();
+        ctx.arc(point.x * width, point.y * height, pointSize, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    };
+
+    const drawHandSkeleton = (ctx, landmarks, width, height) => {
+      const lineWidth = Math.max(1, Math.min(width, height) / 200);
+      const pointSize = Math.max(2, Math.min(width, height) / 150);
+      
+      ctx.strokeStyle = '#ff69b4';
+      ctx.lineWidth = lineWidth;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = '#ff69b4';
+      
+      HAND_CONNECTIONS.forEach(([i, j]) => {
+        const p1 = landmarks[i];
+        const p2 = landmarks[j];
+        ctx.beginPath();
+        ctx.moveTo(p1.x * width, p1.y * height);
+        ctx.lineTo(p2.x * width, p2.y * height);
+        ctx.stroke();
+      });
+
+      ctx.fillStyle = '#ff1493';
+      ctx.shadowBlur = 0;
+      landmarks.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(point.x * width, point.y * height, pointSize, 0, 2 * Math.PI);
+        ctx.fill();
       });
     };
 
@@ -146,45 +262,80 @@ export default function Hide4() {
     const renderLoop = () => {
       if (!isMounted) return;
 
-      if (faceLandmarker && videoRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+      if (faceLandmarker && handLandmarker && videoRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
         const startTimeMs = performance.now();
         if (lastVideoTime !== videoRef.current.currentTime) {
           lastVideoTime = videoRef.current.currentTime;
-          const results = faceLandmarker.detectForVideo(videoRef.current, startTimeMs);
+
+          const faceResults = faceLandmarker.detectForVideo(videoRef.current, startTimeMs);
+          const handResults = handLandmarker.detectForVideo(videoRef.current, startTimeMs);
 
           const hudCanvas = canvasRef.current;
           const hudCtx = hudCanvas ? hudCanvas.getContext('2d') : null;
+          const videoWidth = videoRef.current.videoWidth;
+          const videoHeight = videoRef.current.videoHeight;
 
-          if (statusRef.current) {
-            if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
-              statusRef.current.innerText = "[信号中断] 请保持面部正对终端";
+          if (hudCtx) {
+            hudCtx.clearRect(0, 0, videoWidth, videoHeight);
+          }
+
+          const hasFace = faceResults.faceLandmarks && faceResults.faceLandmarks.length > 0;
+          const hasHand = handResults.landmarks && handResults.landmarks.length > 0;
+
+          if (!hasFace && !hasHand) {
+            if (statusRef.current) {
+              statusRef.current.innerText = "[信号中断] 请保持面部正对终端并举起双手";
               statusRef.current.style.color = '#888888';
+            }
+          } else {
+            if (hasFace) {
+              const faceLandmarks = faceResults.faceLandmarks[0];
               
               if (hudCtx) {
-                hudCtx.clearRect(0, 0, 300, 400);
-              }
-            } else {
-              const landmarks = results.faceLandmarks[0];
-
-              if (hudCtx) {
-                drawFaceMesh(hudCtx, landmarks, 300, 400);
+                drawFaceMesh(hudCtx, faceLandmarks, videoWidth, videoHeight);
               }
 
-              const faceRig = Face.solve(landmarks, {
+              const faceRig = Face.solve(faceLandmarks, {
                 runtime: "mediapipe",
                 video: videoRef.current
               });
-              rigRef.current = faceRig;
+              rigRef.current.face = faceRig;
+            }
 
-              if (statusRef.current) {
-                if (faceRig.mouth.y > 0.5) {
-                  statusRef.current.innerText = "[神经递质异动] 检测到微笑";
-                  statusRef.current.style.color = '#00ff88';
-                } else {
-                  statusRef.current.innerText = "[义体同步] Live2D 同步率：100%";
-                  statusRef.current.style.color = '#00ffff';
+            if (hasHand) {
+              const handLandmarks = handResults.landmarks;
+              
+              handLandmarks.forEach((landmarks, index) => {
+                if (hudCtx) {
+                  drawHandSkeleton(hudCtx, landmarks, videoWidth, videoHeight);
                 }
+              });
+
+              const primaryHand = handLandmarks[0];
+              const handY = primaryHand[0].y;
+              rigRef.current.arm = (0.7 - handY) * 2;
+              rigRef.current.arm = Math.max(-1, Math.min(1, rigRef.current.arm));
+            } else {
+              rigRef.current.arm = undefined;
+            }
+
+            if (statusRef.current && rigRef.current.face) {
+              const face = rigRef.current.face;
+              let statusText = "[义体同步] Live2D 同步率：100%";
+              let statusColor = '#00ffff';
+
+              if (face.mouth?.y > 0.5) {
+                statusText = "[神经递质异动] 检测到张嘴";
+                statusColor = '#00ff88';
               }
+              
+              if (hasHand) {
+                statusText += " | 手势联动中";
+                statusColor = '#ff69b4';
+              }
+
+              statusRef.current.innerText = statusText;
+              statusRef.current.style.color = statusColor;
             }
           }
         }
@@ -209,7 +360,7 @@ export default function Hide4() {
     (async () => {
       try {
         if (statusRef.current) {
-          statusRef.current.innerText = "[神经握手] 正在建立连接...";
+          statusRef.current.innerText = "[神经握手] 正在建立双引擎连接...";
         }
 
         await initMediaPipe();
@@ -235,6 +386,9 @@ export default function Hide4() {
       if (stream) stream.getTracks().forEach(track => track.stop());
       if (faceLandmarker) {
         try { faceLandmarker.close(); } catch (e) {}
+      }
+      if (handLandmarker) {
+        try { handLandmarker.close(); } catch (e) {}
       }
       
       if (appRef.current) {
@@ -285,13 +439,14 @@ export default function Hide4() {
         position: 'absolute',
         bottom: '20px',
         left: '20px',
-        width: '300px',
-        height: '400px',
+        width: '320px',
+        height: '240px',
         borderRadius: '12px',
         overflow: 'hidden',
         border: '2px solid rgba(0, 255, 255, 0.5)',
-        boxShadow: '0 0 30px rgba(0, 255, 255, 0.4), 0 0 60px rgba(0, 255, 136, 0.2)',
-        zIndex: 30
+        boxShadow: '0 0 30px rgba(0, 255, 255, 0.4), 0 0 60px rgba(255, 105, 180, 0.2)',
+        zIndex: 30,
+        backgroundColor: '#111'
       }}>
         <video 
           ref={videoRef} 
@@ -308,18 +463,39 @@ export default function Hide4() {
         />
         <canvas 
           ref={canvasRef}
-          width={300}
-          height={400}
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '300px',
-            height: '400px',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
             transform: 'scaleX(-1)',
             pointerEvents: 'none'
           }}
         />
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          left: '8px',
+          color: '#00ffff',
+          fontSize: '10px',
+          fontFamily: 'monospace',
+          textShadow: '0 0 5px #00ffff'
+        }}>
+          面部识别
+        </div>
+        <div style={{
+          position: 'absolute',
+          top: '24px',
+          left: '8px',
+          color: '#ff69b4',
+          fontSize: '10px',
+          fontFamily: 'monospace',
+          textShadow: '0 0 5px #ff69b4'
+        }}>
+          手势识别
+        </div>
       </div>
       
       <div style={{ 
@@ -333,7 +509,7 @@ export default function Hide4() {
         zIndex: 20,
         textShadow: '0 0 10px rgba(0, 255, 255, 0.8)'
       }}>
-        [ESC] 退出
+        [ESC] 退出 | 拖拽移动 | 滚轮缩放
       </div>
       
       <div 
@@ -351,7 +527,7 @@ export default function Hide4() {
           zIndex: 20
         }}
       >
-        [神经握手] 正在建立连接...
+        [神经握手] 正在建立双引擎连接...
       </div>
     </div>
   );
