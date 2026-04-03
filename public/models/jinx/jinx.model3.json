@@ -3,16 +3,33 @@
 	"FileReferences": {
 		"Moc": "jinx.moc3",
 		"Textures": [
-			"jinx.4096/texture_00.png",
-			"jinx.4096/texture_01.png",
-			"jinx.4096/texture_02.png",
-			"jinx.4096/texture_03.png",
-			"jinx.4096/texture_04.png",
-			"jinx.4096/texture_05.png",
-			"jinx.4096/texture_06.png"
+			"jinx_pictures/texture_00.webp",
+			"jinx_pictures/texture_01.webp",
+			"jinx_pictures/texture_02.webp",
+			"jinx_pictures/texture_03.webp",
+			"jinx_pictures/texture_04.webp",
+			"jinx_pictures/texture_05.webp",
+			"jinx_pictures/texture_06.webp"
 		],
 		"Physics": "jinx.physics3.json",
-		"DisplayInfo": "jinx.cdi3.json"
+		"DisplayInfo": "jinx.cdi3.json",
+		"Motions": {
+			"Idle": [
+				{"File": "exp/walk.motion3.json"}
+			],
+			"TapBody": [
+				{"File": "exp/stop.motion3.json"},
+				{"File": "exp/mr.motion3.json"}
+			]
+		},
+		"Expressions": [
+			{"Name": "Cry", "File": "exp/Cry.exp3.json"},
+			{"Name": "blood", "File": "exp/blood.exp3.json"},
+			{"Name": "clothes", "File": "exp/clothes.exp3.json"},
+			{"Name": "hand up", "File": "exp/hand up.exp3.json"},
+			{"Name": "hat", "File": "exp/hat.exp3.json"},
+			{"Name": "light", "File": "exp/light.exp3.json"}
+		]
 	},
 	"Groups": [
 		{

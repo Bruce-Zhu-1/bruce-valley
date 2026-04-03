@@ -12,6 +12,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Ignore source files
+ignore_sources/
+
 # P5 UI source folder (Vue)
 p5_ui/
 
