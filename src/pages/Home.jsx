@@ -323,6 +323,31 @@ function Home() {
         >
           Z
         </motion.div>
+        <motion.div
+          whileHover={{ scale: 1.1, boxShadow: '0 0 20px rgba(0, 255, 255, 0.8)' }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/ar-space')}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 255, 255, 0.1)',
+            color: '#00ffff',
+            border: '2px solid #00ffff',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 0 10px rgba(0, 255, 255, 0.5)'
+          }}
+          title="跳转到 AR Space"
+        >
+          AR
+        </motion.div>
       </div>
       
       <style>{`
